@@ -1,36 +1,23 @@
+"""Tests for the Kaplay sandbox engine."""
+
 import pytest
-import asyncio
-from dt_sandboxes.kaplay import KaplaySandbox
-from dt_sandboxes.schemas import SandboxType, TelemetryType, KaplayCodeChange
+from dt_contracts.sandboxes.base import SandboxType
+
+from dt_sandboxes.engines.kaplay.sandbox import KaplaySandbox
+
 
 @pytest.mark.asyncio
-async def test_kaplay_sandbox_lifecycle():
-    """Test the basic lifecycle of the Kaplay sandbox."""
-    sandbox = KaplaySandbox(sandbox_id="kaplay-test")
-    assert sandbox.sandbox_id == "kaplay-test"
-    assert sandbox.sandbox_type == SandboxType.KAPLAY
-    assert not sandbox.is_running
-
-    await sandbox.start()
-    assert sandbox.is_running
-
-    await sandbox.stop()
-    assert not sandbox.is_running
+async def test_kaplay_sandbox_initialization() -> None:
+    """Ensure Kaplay sandbox initializes with correct type and harvester."""
+    sb = KaplaySandbox(sandbox_id="test-k-1")
+    assert sb.sandbox_type == SandboxType.KAPLAY
+    assert sb.sandbox_id == "test-k-1"
+    assert sb.harvester is not None
 
 @pytest.mark.asyncio
-async def test_kaplay_sandbox_telemetry_push():
-    """Test pushing telemetry to the Kaplay sandbox."""
-    sandbox = KaplaySandbox(sandbox_id="kaplay-test")
-    await sandbox.start()
-
-    event = KaplayCodeChange(
-        sandbox_id="kaplay-test",
-        sandbox_type=SandboxType.KAPLAY,
-        code="add([])"
-    )
-
-    await sandbox.push_telemetry(event)
-
-    received = await sandbox.get_telemetry()
-    assert received.event_type == TelemetryType.CODE_CHANGE
-    assert received.code == "add([])"
+async def test_kaplay_harvester_script_loading() -> None:
+    """Ensure the Kaplay harvester script can be retrieved."""
+    sb = KaplaySandbox(sandbox_id="test-k-1")
+    js = sb.harvester.get_injection_js()
+    assert "window.initEdOSHarvester" in js
+    assert "kaplay" in js

@@ -1,0 +1,41 @@
+{
+  "name": "@strudel/core",
+  "version": "1.1.0",
+  "description": "Port of Tidal Cycles to JavaScript",
+  "main": "index.mjs",
+  "type": "module",
+  "publishConfig": {
+    "main": "dist/index.mjs"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "bench": "vitest bench",
+    "build": "vite build",
+    "prepublishOnly": "pnpm build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tidalcycles/strudel.git"
+  },
+  "keywords": [
+    "tidalcycles",
+    "strudel",
+    "pattern",
+    "livecoding",
+    "algorave"
+  ],
+  "author": "Alex McLean <alex@slab.org> (https://slab.org)",
+  "license": "AGPL-3.0-or-later",
+  "bugs": {
+    "url": "https://github.com/tidalcycles/strudel/issues"
+  },
+  "homepage": "https://strudel.cc",
+  "dependencies": {
+    "fraction.js": "^4.3.7"
+  },
+  "gitHead": "0e26d4e741500f5bae35b023608f062a794905c2",
+  "devDependencies": {
+    "vite": "^5.0.10",
+    "vitest": "^1.1.0"
+  }
+}

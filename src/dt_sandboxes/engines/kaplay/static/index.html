@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Ed-OS Kaplay Sandbox</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #000; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <!-- 1. Load the Vendored Engine -->
+    <script src="../../vendors/kaplay.js"></script>
+
+    <!-- 2. Injection placeholder for the Harvester -->
+    <script id="harvester-script"></script>
+
+    <!-- 3. Injection placeholder for the student's code -->
+    <script id="student-code"></script>
+
+    <script>
+        // Initialize the engine and harvester once code is injected
+        if (window.initEdOSHarvester && typeof k !== 'undefined') {
+            window.initEdOSHarvester(k);
+        }
+    </script>
+</body>
+</html>

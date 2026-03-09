@@ -1,38 +1,45 @@
 /**
- * Deepthought Ed-OS: BeepBox Harvester
+ * Deepthought Ed-OS: Strudel (Music) Harvester
  * 
- * Monitors musical state changes in the BeepBox chiptune engine.
+ * Intercepts music patterns and temporal events from the Strudel engine.
  */
 
 (function() {
-    const HARVESTER_ID = "dt-music-harvester";
+    const HARVESTER_ID = "dt-strudel-harvester";
 
-    function broadcast(eventName, payload, level = "info") {
-        if (window.backpack && window.backpack.sendTelemetry) {
-            window.backpack.sendTelemetry({
-                sandbox_type: "beepbox",
-                event_name: eventName,
-                level: level,
-                payload: payload
-            });
+    window.initEdOSStrudelHarvester = function(strudel) {
+        console.log(`[${HARVESTER_ID}] Hooking into Strudel...`);
+
+        if (window.EdOS) {
+            window.EdOS.initErrorCatching("strudel");
         }
-    }
 
-    /**
-     * BeepBox encodes most of its state in the URL hash.
-     * We monitor hash changes to detect state mutations.
-     */
-    window.addEventListener("hashchange", () => {
-        // Example hash: #8n31s0k0l00e03t2cm0a7g0fj07i0r1o3210T1v1u...
-        // We'll extract raw metadata if possible, but the URL itself is the 'source of truth'
-        broadcast("state_update", {
-            url_state: window.location.hash,
-            timestamp: new Date().toISOString()
-        });
-    });
+        // Hook into the evaluate event (when student runs code)
+        const originalEvaluate = strudel.evaluate;
+        strudel.evaluate = function(code) {
+            if (window.EdOS) {
+                window.EdOS.sendTelemetry("strudel", "code_evaluated", {
+                    code: code,
+                    timestamp: new Date().toISOString()
+                });
+            }
+            return originalEvaluate.apply(this, arguments);
+        };
 
-    // Initial broadcast
-    setTimeout(() => {
-        broadcast("engine_ready", { version: "BeepBox Offline" }, "success");
-    }, 1000);
+        // Observe the scheduler for BPM and Cycle changes
+        setInterval(() => {
+            if (strudel.scheduler && window.EdOS) {
+                const stats = {
+                    bpm: strudel.scheduler.bpm,
+                    cycle: strudel.scheduler.cycle,
+                    cps: strudel.scheduler.cps
+                };
+                window.EdOS.sendTelemetry("strudel", "rhythm_stats", stats);
+            }
+        }, 5000); // Low frequency heartbeat
+
+        if (window.EdOS) {
+            window.EdOS.sendTelemetry("strudel", "engine_ready", {}, "success");
+        }
+    };
 })();

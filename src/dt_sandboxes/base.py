@@ -4,10 +4,8 @@ import asyncio
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
+from dt_contracts.sandboxes.base import SandboxType
 from dt_sandboxes.schemas import BaseTelemetry
-
-if TYPE_CHECKING:
-    from dt_contracts.sandboxes.base import SandboxType
 
 
 class BaseSandbox[T: BaseTelemetry](ABC):

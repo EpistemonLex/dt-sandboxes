@@ -7,8 +7,6 @@ from dt_contracts.sandboxes.base import SandboxTelemetry
 from dt_contracts.sandboxes.kaplay import KaplayCompilationError, KaplayState
 from pydantic import TypeAdapter
 
-if TYPE_CHECKING:
-    from dt_contracts.sandboxes.base import SandboxTelemetry
 
 class KaplayHarvester:
     """Manages the JS harvester injection and telemetry parsing for Kaplay."""
@@ -21,8 +19,13 @@ class KaplayHarvester:
     def get_injection_js(self) -> str:
         """Return the JavaScript string to be injected into the sandbox."""
         if not self._js_cache:
-            js_path = self.static_dir / "harvester.js"
-            self._js_cache = js_path.read_text(encoding="utf-8")
+            bridge_path = Path(__file__).parents[1] / "static" / "bridge.js"
+            harvester_path = self.static_dir / "harvester.js"
+            
+            bridge_js = bridge_path.read_text(encoding="utf-8")
+            harvester_js = harvester_path.read_text(encoding="utf-8")
+            
+            self._js_cache = f"{bridge_js}\n\n{harvester_js}"
         return self._js_cache
 
     def parse_telemetry(self, telemetry: SandboxTelemetry) -> KaplayState | KaplayCompilationError | None:

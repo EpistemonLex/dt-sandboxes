@@ -1,52 +1,38 @@
 /**
- * Deepthought Ed-OS: Snap! Harvester
+ * Deepthought Ed-OS: Snap! (Programming) Harvester
  * 
- * Extracts block-based logic and sprite state from Snap!.
+ * Injected into the Snap! environment to observe block-based code changes.
  */
 
 (function() {
     const HARVESTER_ID = "dt-snap-harvester";
 
-    function broadcast(eventName, payload, level = "info") {
-        if (window.backpack && window.backpack.sendTelemetry) {
-            window.backpack.sendTelemetry({
-                sandbox_type: "snap",
-                event_name: eventName,
-                level: level,
-                payload: payload
-            });
+    window.initEdOSSnapHarvester = function(ide) {
+        console.log(`[${HARVESTER_ID}] Hooking into Snap! IDE...`);
+
+        if (window.EdOS) {
+            window.EdOS.initErrorCatching("snap");
         }
-    }
 
-    /**
-     * Serializes the current Snap! project state.
-     */
-    function extractState() {
-        if (!window.world || !world.children[0]) return null;
-        const ide = world.children[0];
-        const stage = ide.stage;
-
-        const sprites = stage.children.filter(c => c.name).map(s => ({
-            name: s.name,
-            x: s.x(),
-            y: s.y(),
-            direction: s.direction(),
-            scripts_count: s.scripts ? s.scripts.children.length : 0
-        }));
-
-        return {
-            project_name: ide.projectName || "Untitled",
-            sprites: sprites,
-            variables: ide.globalVariables.vars,
-            is_running: !!ide.stage.isStepping
+        // Listen for project changes (blocks added, script moved, etc)
+        const originalChanged = ide.changed;
+        ide.changed = function() {
+            if (window.EdOS) {
+                // Throttle: Snap! ide.changed can be very frequent
+                if (!this._last_broadcast || (Date.now() - this._last_broadcast > 2000)) {
+                    const xml = ide.serializer.serialize(ide.project);
+                    window.EdOS.sendTelemetry("snap", "state_update", {
+                        xml: xml,
+                        timestamp: new Date().toISOString()
+                    });
+                    this._last_broadcast = Date.now();
+                }
+            }
+            return originalChanged.apply(this, arguments);
         };
-    }
 
-    // Set up polling
-    setInterval(() => {
-        const state = extractState();
-        if (state) broadcast("state_update", state);
-    }, 5000);
-
-    broadcast("engine_ready", { version: "Snap! Offline" }, "success");
+        if (window.EdOS) {
+            window.EdOS.sendTelemetry("snap", "engine_ready", {}, "success");
+        }
+    };
 })();

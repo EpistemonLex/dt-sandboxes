@@ -1,5 +1,5 @@
 -- Deepthought Ed-OS: Minetest Harvester Mod
--- 
+--
 -- Intercepts world events and broadcasts them to the Backpack daemon.
 
 local HARVESTER_URL = "http://localhost:8000/telemetry/minetest"
@@ -11,58 +11,59 @@ if not http then
 end
 
 local function broadcast(event_name, payload)
-    local data = {
+    local data = minetest.write_json({
         sandbox_type = "minetest",
         event_name = event_name,
         payload = payload,
         level = "info",
         timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ")
-    }
-    
+    })
+
     http.fetch({
         url = HARVESTER_URL,
         method = "POST",
-        data = minetest.write_json(data),
+        data = data,
         timeout = 2,
+        post_data = data, -- compatibility
     }, function(res)
         if not res.succeeded then
-            minetest.log("warning", "[Ed-OS] Failed to send telemetry: " .. event_name)
+            minetest.log("warning", "[Ed-OS] Telemetry broadcast failed: " .. tostring(res.code))
         end
     end)
 end
 
--- 1. Hook into Block Events
-minetest.register_on_placenode(function(pos, newnode, placer, oldnode, itemstack, pointed_thing)
-    broadcast("block_event", {
-        pos = pos,
-        block_name = newnode.name,
-        action = "place"
-    })
-end)
+-- 1. Observe Movement (Gravity Trigger)
+local player_states = {}
 
-minetest.register_on_dignode(function(pos, oldnode, digger)
-    broadcast("block_event", {
-        pos = pos,
-        block_name = oldnode.name,
-        action = "dig"
-    })
-end)
-
--- 2. Periodic Player Sync (Spatial Reasoning)
-local timer = 0
 minetest.register_globalstep(function(dtime)
-    timer = timer + dtime
-    if timer >= 5 then
-        timer = 0
-        for _, player in ipairs(minetest.get_connected_players()) do
-            broadcast("state_update", {
-                player_pos = player:get_pos(),
-                player_hp = player:get_hp(),
-                inventory_count = player:get_inventory():get_size("main"),
-                active_mod_version = "1.0.0"
-            })
+    for _, player in ipairs(minetest.get_connected_players()) do
+        local name = player:get_player_name()
+        local pos = player:get_pos()
+        local vel = player:get_velocity()
+        
+        if vel.y < -10 then -- Fast falling
+            if not player_states[name] or player_states[name].state ~= "falling" then
+                player_states[name] = { state = "falling", start_pos = pos }
+                broadcast("player_falling", { name = name, velocity_y = vel.y, pos = pos })
+            end
+        elseif vel.y >= 0 and player_states[name] and player_states[name].state == "falling" then
+            -- Landed
+            local fall_dist = player_states[name].start_pos.y - pos.y
+            broadcast("player_landed", { name = name, fall_distance = fall_dist, pos = pos })
+            player_states[name] = nil
         end
     end
 end)
 
-minetest.log("action", "[Ed-OS] Minetest Harvester Loaded.")
+-- 2. Observe Block Placement
+minetest.register_on_placenode(function(pos, newnode, placer, oldnode, itemstack, pointed_thing)
+    if placer and placer:is_player() then
+        broadcast("node_placed", {
+            name = placer:get_player_name(),
+            node = newnode.name,
+            pos = pos
+        })
+    end
+end)
+
+minetest.log("action", "[Ed-OS] Harvester Mod loaded and observing world.")

@@ -3,11 +3,10 @@
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from dt_contracts.sandboxes.base import SandboxTelemetry
 from dt_contracts.sandboxes.minetest import BlockEvent, MinetestState
 from pydantic import TypeAdapter
 
-if TYPE_CHECKING:
-    from dt_contracts.sandboxes.base import SandboxTelemetry
 
 class MinetestHarvester:
     """Manages the Lua mod injection and telemetry parsing for Minetest."""

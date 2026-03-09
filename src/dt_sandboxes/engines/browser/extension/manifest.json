@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "Deepthought Ed-OS: Pedagogical Nanny",
+  "version": "1.0",
+  "description": "Observes digital curiosity and broadcasts to the Ed-OS Backpack.",
+  "permissions": ["tabs", "storage"],
+  "host_permissions": ["http://localhost:8000/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ]
+}

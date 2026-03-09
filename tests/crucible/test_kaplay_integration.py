@@ -19,8 +19,14 @@ KAPLAY_SHIM_HTML = """
         // 1. Mock the Backpack Bridge (usually provided by daemon)
         window.backpack = {
             sendTelemetry: function(data) {
-                // Route to pywebview API
-                window.pywebview.api.sendTelemetry(data);
+                // Route to pywebview API (supporting both cases)
+                if (window.pywebview && window.pywebview.api) {
+                    if (window.pywebview.api.send_telemetry) {
+                        window.pywebview.api.send_telemetry(data);
+                    } else if (window.pywebview.api.sendTelemetry) {
+                        window.pywebview.api.sendTelemetry(data);
+                    }
+                }
             }
         };
 
@@ -89,4 +95,6 @@ def test_kaplay_harvester_extraction() -> None:
     # Verify specific data mapping
     state_update = next(t for t in telemetry if t.event_name == "state_update")
     assert state_update.payload["gravity"] == 9.8
-    assert len(state_update.payload["objects"]) == 1  # type: ignore[arg-type] # architectural: allowed-object
+    objects = state_update.payload["objects"]
+    assert isinstance(objects, list)
+    assert len(objects) == 1

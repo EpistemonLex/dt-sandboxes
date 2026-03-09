@@ -1,39 +1,37 @@
 /**
- * Deepthought Ed-OS: BlocksCAD / OpenJSCAD Harvester
+ * Deepthought Ed-OS: BlocksCAD (3D Modeling) Harvester
  * 
- * Monitors 3D geometric state and script changes in CAD engines.
+ * Extracts the Blockly XML workspace from the BlocksCAD environment.
  */
 
 (function() {
     const HARVESTER_ID = "dt-cad-harvester";
 
-    function broadcast(eventName, payload, level = "info") {
-        if (window.backpack && window.backpack.sendTelemetry) {
-            window.backpack.sendTelemetry({
-                sandbox_type: "cad",
-                event_name: eventName,
-                level: level,
-                payload: payload
-            });
+    window.initEdOSCADHarvester = function(blocklyWorkspace) {
+        console.log(`[${HARVESTER_ID}] Hooking into BlocksCAD...`);
+
+        if (window.EdOS) {
+            window.EdOS.initErrorCatching("cad");
         }
-    }
 
-    /**
-     * For OpenJSCAD, we monitor the script text.
-     */
-    function extractJSCADState() {
-        if (typeof gProcessor === 'undefined') return null;
-        return {
-            script: gProcessor.currentScript,
-            objects_count: gProcessor.objects ? gProcessor.objects.length : 0
-        };
-    }
+        // Listen for workspace changes
+        blocklyWorkspace.addChangeListener((event) => {
+            // We only care about events that change the actual logic/structure
+            if (event.type === "move" || event.type === "create" || event.type === "delete" || event.type === "change") {
+                if (window.EdOS) {
+                    const xml = Blockly.Xml.workspaceToDom(blocklyWorkspace);
+                    const xmlText = Blockly.Xml.domToText(xml);
+                    
+                    window.EdOS.sendTelemetry("cad", "workspace_update", {
+                        xml: xmlText,
+                        timestamp: new Date().toISOString()
+                    });
+                }
+            }
+        });
 
-    // Set up polling for geometry changes
-    setInterval(() => {
-        const state = extractJSCADState();
-        if (state) broadcast("state_update", state);
-    }, 5000);
-
-    broadcast("engine_ready", { version: "CAD Offline" }, "success");
+        if (window.EdOS) {
+            window.EdOS.sendTelemetry("cad", "engine_ready", {}, "success");
+        }
+    };
 })();

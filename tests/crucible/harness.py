@@ -1,10 +1,13 @@
 """The Crucible: Offline Integration Harness for Ed-OS Sandboxes."""
 
 import asyncio
+import logging
 import threading
 
 import webview
 from dt_contracts.sandboxes.base import SandboxTelemetry
+
+logger = logging.getLogger("crucible.harness")
 
 
 class CrucibleHarness:
@@ -14,21 +17,21 @@ class CrucibleHarness:
         """Initialize the harness with HTML content."""
         self.html_content = html_content
         self.telemetry_received: list[SandboxTelemetry] = []
-        self._window: object = None  # architectural: allowed-object (Webview Window)
+        self._window: object | None = None  # architectural: allowed-object (Webview Window)
         self._loop = asyncio.get_event_loop()
 
-    def sendTelemetry(self, raw_telemetry: dict[str, object]) -> None:  # noqa: N802 # architectural: allowed-object (JS Bridge)
+    def send_telemetry(self, raw_telemetry: dict[str, object]) -> None:
         """Ingest raw telemetry from JavaScript.
 
-        Called from JavaScript via window.pywebview.api.sendTelemetry.
+        Called from JavaScript via window.pywebview.api.send_telemetry.
         """
         try:
             # Validate against dt-contracts immediately
             telemetry = SandboxTelemetry.model_validate(raw_telemetry)
             self.telemetry_received.append(telemetry)
-        except Exception as e:  # architectural: Loop safety
+        except Exception as e:
             # Log error without crashing the webview loop
-            print(f"[Crucible] Ingestion failed: {e}")  # noqa: T201 # architectural: Test logging
+            logger.error("Ingestion failed: %s", e)
 
     def run(self, timeout: int = 5) -> None:
         """Run the harness and wait for telemetry."""

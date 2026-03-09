@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "dt-sandboxes"
 version = "0.1.0"
 description = "Deepthought S.T.E.A.M. Crucibles: Kaplay.js, Minetest, TurboWarp wrappers."
-requires-python = ">=3.14"
+requires-python = ">=3.12,<3.13"
 authors = [{ name = "Epistemon" }]
 dependencies = [
     "dt-contracts",

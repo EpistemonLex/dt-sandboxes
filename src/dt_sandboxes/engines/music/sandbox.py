@@ -1,25 +1,30 @@
-"""Music sandbox implementation."""
+"""Music sandbox implementation (BeepBox, Strudel)."""
 
 from dt_contracts.sandboxes.base import SandboxType
 
 from dt_sandboxes.base import BaseSandbox
 from dt_sandboxes.schemas import BaseTelemetry
 
-from .harvester import MusicHarvester
+from .beepbox_harvester import BeepBoxHarvester
+from .harvester import MusicHarvester as StrudelHarvester
 
 
 class MusicSandbox(BaseSandbox[BaseTelemetry]):
-    """Sandbox environment for BeepBox."""
+    """Sandbox environment for BeepBox or Strudel."""
 
-    def __init__(self, sandbox_id: str) -> None:
+    def __init__(self, sandbox_id: str, engine_type: SandboxType = SandboxType.BEEPBOX) -> None:
         """Initialize the music sandbox.
 
         Args:
             sandbox_id: Unique identifier for the sandbox.
+            engine_type: The specific engine to use (BeepBox or Strudel).
 
         """
-        super().__init__(sandbox_id, SandboxType.BEEPBOX)
-        self.harvester = MusicHarvester()
+        super().__init__(sandbox_id, engine_type)
+        if engine_type == SandboxType.BEEPBOX:
+            self.harvester = BeepBoxHarvester()
+        else:
+            self.harvester = StrudelHarvester()
 
     async def start(self) -> None:
         """Start the music environment."""

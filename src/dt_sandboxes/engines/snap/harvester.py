@@ -3,11 +3,9 @@
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from dt_contracts.sandboxes.base import SandboxTelemetry
+from dt_contracts.sandboxes.snap import SnapBlock, SnapState
 from pydantic import TypeAdapter
-
-if TYPE_CHECKING:
-    from dt_contracts.sandboxes.base import SandboxTelemetry
-    from dt_contracts.sandboxes.snap import SnapBlock, SnapState
 
 
 class SnapHarvester:
@@ -21,18 +19,17 @@ class SnapHarvester:
     def get_injection_js(self) -> str:
         """Return the JavaScript string to be injected into the sandbox."""
         if not self._js_cache:
-            js_path = self.static_dir / "harvester.js"
-            self._js_cache = js_path.read_text(encoding="utf-8")
+            bridge_path = Path(__file__).parents[1] / "static" / "bridge.js"
+            harvester_path = self.static_dir / "harvester.js"
+            
+            bridge_js = bridge_path.read_text(encoding="utf-8")
+            harvester_js = harvester_path.read_text(encoding="utf-8")
+            
+            self._js_cache = f"{bridge_js}\n\n{harvester_js}"
         return self._js_cache
 
     def parse_telemetry(self, telemetry: SandboxTelemetry) -> SnapState | SnapBlock | None:
         """Map raw sandbox telemetry to specific Snap! contracts."""
-        from dt_contracts.sandboxes.snap import (  # noqa: PLC0415 # architectural: allowed-object
-            SnapBlock,
-            SnapState,
-        )
-
-
         if telemetry.event_name == "state_update":
             return TypeAdapter(SnapState).validate_python(telemetry.payload)
 
